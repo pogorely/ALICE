@@ -2,7 +2,7 @@
 Detecting TCR involved in immune responses from single RepSeq datasets.
 
 ## About
-Here we provide an R implementation of ALICE approach, described in this [paper](link to arxiv).
+Here we provide an R implementation of ALICE approach, see [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) for details.
 ## Software requirements
 Any OS where R is available (Linux, OS X, Windows), however parallel computing is currently not available on Windows.  
 
@@ -41,7 +41,7 @@ sapply(S1_alice,nrow)
 For this VJ-combination we have no significant results in day 0 timepoint, and 34 significant hits in day 15 timepoint. 
 
 Note, that for demo purposes we run it on 1 core with 10 iterations (0.5 mln sequences in each iteration) for generative probability estimation simulation. Total number of simulated TCR sequences (both inframe and out-of-frame) in this case is 5 million. 
-In paper(link) we used 200 mln simulated sequences for each VJ-class, and this takes a lot of time. 
+In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 200 mln simulated sequences for each VJ-class, and this takes a lot of time. 
 
 ## Input file format
 Algorithm operates on R dataset with following mandatory columns: 
