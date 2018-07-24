@@ -20,7 +20,7 @@ install.packages("data.table")
 install.packages("stringdistr")
 ```
 
-## Quick start:
+## Quick start
 Lets load some data first and organize it to the list. 
 
 This is one VJ combination (TRBV9-TRBJ2-7) from S1 donor from link on day 0 and day 15 after yellow fever immunization.
@@ -42,8 +42,7 @@ For this VJ-combination we have no significant results in day 0 timepoint, and 3
 Note, that for demo purposes we run it on 1 core with 10 iterations (0.5 mln sequences in each iteration) for generative probability estimation simulation. Total number of simulated TCR sequences (both inframe and out-of-frame) in this case is 5 million. 
 In paper(link) we used 200 mln simulated sequences for each VJ-class, and this takes a lot of time. 
 
-##Input file format
-
+## Input file format
 Algorithm operates on R dataset with following mandatory columns: 
 
 *CDR3.amino.acid.sequence*, *bestVGene*, *bestJGene*, *Read.count*. 
