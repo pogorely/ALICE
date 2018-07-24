@@ -1,7 +1,8 @@
 # ALICE
-Detecting TCR involved in immune responses from single RepSeq datasets
-#Installation
+Detecting TCR involved in immune responses from single RepSeq datasets.
 
+## About
+Here we provide an R implementation of ALICE approach, described in this [paper](link to arxiv).
 ## Software requirements
 Any OS where R is available (Linux, OS X, Windows), however parallel computing is currently not available on Windows.  
 
