@@ -43,6 +43,9 @@ Note, that for demo purposes we run it on 1 core with 10 iterations (0.5 mln seq
 In paper(link) we used 200 mln simulated sequences for each VJ-class, and this takes a lot of time. 
 
 ##Input file format
-Algorithm operates on R dataset with following mandatory columns *CDR3.amino.acid.sequence*, *bestVGene*, *bestJGene*, *Read.count*. 
+
+Algorithm operates on R dataset with following mandatory columns: 
+
+*CDR3.amino.acid.sequence*, *bestVGene*, *bestJGene*, *Read.count*. 
 
 See sample datasets in *sample* folder.
