@@ -14,7 +14,7 @@ Any OS where R is available (Linux, OS X, Windows), however parallel computing i
 source("https://bioconductor.org/biocLite.R")
 biocLite("Biostrings")
 ```
-3. Install data.table, stringdistr, igraph packages:
+3. Install *data.table*, *stringdistr*, *igraph* packages:
 ```R
 install.packages("igraph")
 install.packages("data.table")
@@ -24,7 +24,7 @@ install.packages("stringdistr")
 ## Quick start
 Lets load some data first and organize it to the list. 
 
-This is one VJ combination (TRBV9-TRBJ2-7) from S1 donor from link on day 0 and day 15 after yellow fever immunization.
+This is one VJ combination (TRBV9-TRBJ2-7) from S1 donor from [link](https://www.biorxiv.org/content/early/2018/04/13/300343) on day 0 and day 15 after yellow fever immunization.
 
 ```R
 S1d15<-fread("sample/S1_d15_V9_J2_7.tsv")
