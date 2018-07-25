@@ -29,7 +29,7 @@ add_p_val<-function(df,total,correct=9.41){#adds column with p_value
       tmp=df$space_n*total
       correct<-coef(lm(df$D~tmp+0))[1]
     }  
-    df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)#setpois?
+    df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
     df}
   else{return(df)}
 }
@@ -111,7 +111,7 @@ compute_pgen_rda_folder<-function(folder,prefix="",iter=50,cores=8,nrec=5e5,sile
       load(fnames[i])
       res<-data.frame()
       if(nrow(shrep)!=0)
-        res<-estimate_pgen_aa(data = shrep,iter = iter,cores=cores,nrec=nrec,V=VJlist[i,1],J=VJlist[i,2])#replace with novel!
+        res<-estimate_pgen_aa(data = shrep,iter = iter,cores=cores,nrec=nrec,V=VJlist[i,1],J=VJlist[i,2])
       if(!silent)print("all iterations done")
       save(res,file=paste0(folder,"/","res_",prefix,fnames_s[i],".rda",collapse = ""))
       if(!silent)print(format(Sys.time(), "%a %b %d %X %Y"))

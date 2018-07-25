@@ -194,28 +194,10 @@ getins<-function(n)paste0(sample(c("A","T","G","C"),replace = T,size=n),collapse
 #universal low_level VJ recombination function. 
 gen_VJ<-function(n,Vseq,Jseq,delV,delJ,insLen,sep="",inframe=T,translate=T){
   if (n==0) return()
-  #trim Vs according to delV vec
   Vpart<-substr(rep(Vseq,times = n),1,nchar(Vseq)-sample(0:(length(delV)-1),size = n,replace = T,prob = delV))
-  #trim Js according to delJ vec
   Jpart<-substr(rep(Jseq,times = n),1+sample(0:(length(delJ)-1),size = n,replace = T,prob = delJ),nchar(Jseq))
-  #generate VD insertion lengths according insLenVD
   ins.num.vec<-sample(0:(length(insLen)-1),size = n,replace = T, prob=insLen)
   VJins<-sapply(ins.num.vec,getins)
-  #generate VD insertion sequences with markov chain according to insNuclVD
-  #VDins<-mchain1(xstart = substr(Vpart,nchar(Vpart),nchar(Vpart)),ls = insVD.num.vec,probsm = insNuclVD)
-  #generate DJ insertion lengths according insLenVD
-  #insDJ.num.vec<-sample(0:(length(insLenVD)-1),size = n,replace = T, prob=insLenDJ)
-  #generate DJ insertion sequences with markov chain according to insNuclVD
-  #DJins<-mchain2(xstart = substr(Jpart,1,1),ls = insDJ.num.vec,probsm = insNuclDJ)
-  #preprocess D deletion matrix for efficient subsetting.
-  #colnames(delD)<-1:ncol(delD)
-  #row.names(delD)<-1:nrow(delD)
-  #indmat<-as.data.frame(as.table(delD))
-  #indmat<-cbind(as.numeric(indmat[,1]),as.numeric(indmat[,2]))
-  #generate table for D substings
-  #Dmat<-t(matrix(indmat[sample(1:length(delD),n,prob = delD,replace = T),c(1,2)],ncol=2))
-  #Dtrimmed<-substr(rep(Dseq,times = n),Dmat[1,],nchar(Dseq)-Dmat[2,]+1)
-  #filter result : we now have problems here!
   res<-(paste(Vpart,VJins,Jpart,sep = sep))
   res
 }
@@ -265,11 +247,7 @@ gen_beta<-function(n,V,J,pr=beta.prob,translate=T,inframe_only=T,segments=segmen
 
 gen_alpha<-function(n,V,J,pr=alpha_twins_average,translate=T,inframe_only=T,segments=segmentsc)
 {
-  #tmp<-pr$P.ins.nucl[,1]
-  #pr$P.ins.nucl<-as.matrix(pr$P.ins.nucl[,-1])
   pr$P.ins.len<-pr$P.ins.len[1:15,]
-  #row.names(pr$P.ins.nucl)<-tmp
-  #Ddist<-round(prop.table(pr$P.J.D[row.names(pr$P.J.D)==J,])*n) 
   Vi<-which(colnames(pr$P.del.V)==V)
   Ji<-which(colnames(pr$P.del.J)==J)
   if((V%in%segments$TRAV$V.alleles)&(J%in%segments$TRAJ$J.alleles))
@@ -299,8 +277,6 @@ get_vj<-function(file){
 }
 
 gen_beta_repertoire<-function(n,VJ_usage,pr=beta.prob,translate=T,inframe_only=T,sep=""){
-  #sample n into VJ_classes. 
-  #VJ usage is table V J prob. 
   VJ_usage$sample<-rmultinom(1,size=n,prob = VJ_usage$clonotypes)
   resl<-list()
   for (i in 1:nrow(VJ_usage)){
@@ -313,8 +289,6 @@ gen_beta_repertoire<-function(n,VJ_usage,pr=beta.prob,translate=T,inframe_only=T
 }
 
 gen_beta_repertoire_short<-function(n,VJ_usage,pr=beta.prob,translate=T,inframe_only=T){
-  #sample n into VJ_classes. 
-  #VJ usage is table V J prob. 
   VJ_usage$sample<-rmultinom(1,size=n,prob = VJ_usage$clonotypes)
   resl<-list()
   for (i in 1:nrow(VJ_usage)){
