@@ -47,7 +47,7 @@ In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 200 
 Datasets from the paper are available [here](https://github.com/pogorely/ALICE_sample_data).
 
 ## Input file format
-Algorithm operates on R dataset with following mandatory columns: 
+Algorithm operates on R *data.table* with following mandatory columns: 
 
 *CDR3.amino.acid.sequence*, *bestVGene*, *bestJGene*, *Read.count*. 
 
