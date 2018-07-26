@@ -37,7 +37,7 @@ S1<-list(d0=S1d0,d15=S1d15)
 Now lets run ALICE pipeline. Note, that algorithm will create a folder for files produced, if it does not exist:
 ```R
 source("ALICE.R")
-S1_alice<-ALICE_pipeline(S1,folder="S1_res",cores=1,iter=10,nrec=5e5) 
+S1_alice<-ALICE_pipeline(DTlist=S1,folder="S1_res",cores=1,iter=10,nrec=5e5) #this takes few minutes to run
 sapply(S1_alice,nrow)
 ```
 For this VJ-combination we have no significant results in day 0 timepoint, and 34 significant hits in day 15 timepoint. 
