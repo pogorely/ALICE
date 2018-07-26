@@ -14,12 +14,13 @@ Any OS where R is available (Linux, OS X, Windows), however parallel computing i
 source("https://bioconductor.org/biocLite.R")
 biocLite("Biostrings")
 ```
-3. Install *data.table*, *stringdistr*, *igraph* packages:
+3. Install *data.table*, *stringdist*, *igraph* packages:
 ```R
 install.packages("igraph")
 install.packages("data.table")
-install.packages("stringdistr")
+install.packages("stringdist")
 ```
+4. Download this github repository.
 
 ## Quick start
 Lets load some data first and organize it to the list. 
