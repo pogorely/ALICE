@@ -28,6 +28,7 @@ Lets load some data first and organize it to the list.
 This is one VJ combination (TRBV9-TRBJ2-7) from S1 donor from [link](https://www.biorxiv.org/content/early/2018/04/13/300343) on day 0 and day 15 after yellow fever immunization.
 
 ```R
+library(data.table)
 S1d15<-fread("sample/S1_d15_V9_J2_7.tsv")
 S1d0<-fread("sample/S1_d0_V9_J2_7.tsv")
 S1<-list(d0=S1d0,d15=S1d15)
@@ -43,6 +44,7 @@ For this VJ-combination we have no significant results in day 0 timepoint, and 3
 
 Note, that for demo purposes we run it on 1 core with 10 iterations (0.5 mln sequences in each iteration) for generative probability estimation simulation. Total number of simulated TCR sequences (both inframe and out-of-frame) in this case is 5 million. 
 In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 200 mln simulated sequences for each VJ-class, and this takes a lot of time. 
+Datasets from the paper are available [here](https://github.com/pogorely/ALICE_sample_data).
 
 ## Input file format
 Algorithm operates on R dataset with following mandatory columns: 
