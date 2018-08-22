@@ -77,13 +77,13 @@ convert_comblist_to_df<-function(comblist)
 }
 
 #pipeline functions
-make_rda_folder<-function(DTlist,folder="",prefix="",VJDT=VDJT){
+make_rda_folder<-function(DTlist,folder="",prefix="",Read_thres=1,VJDT=VDJT){
   dir.create(folder, showWarnings = FALSE)
   VJDT<-as.data.table(VJDT)
   VJDT[,bestVGene:=V,]
   VJDT[,bestJGene:=J,]
   for (i in 1:nrow(VJDT)){
-    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJDT$bestVGene[i]&bestJGene==VJDT$bestJGene[i]&Read.count>1,,]) 
+    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJDT$bestVGene[i]&bestJGene==VJDT$bestJGene[i]&Read.count>Read_thres,,]) 
     all_short_int<-lapply(all_short_i,filter_data)
     all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
     hugel<-unlist(lapply(unique(unlist(lapply(all_short_int2,function(x){if(nrow(x)>0)x[,CDR3.amino.acid.sequence,]}))),all_other_variants_one_mismatch))
@@ -120,7 +120,7 @@ compute_pgen_rda_folder<-function(folder,prefix="",iter=50,cores=8,nrec=5e5,sile
     }
 }
 
-parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){# gets folder, returns space and space_n, and add significant also.  
+parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,Read_thres=1,silent=T){# gets folder, returns space and space_n, and add significant also.  
   fnames<-list.files(folder,pattern = "res_",full.names = T)
   fnames_s<-list.files(folder,pattern = "res_",full.names = F)
   fnames_s<-gsub("res_","",fnames_s)
@@ -130,14 +130,14 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){
   resl<-list()
   for (i in 1:nrow(VJlist)){
     if(!silent)print(i)
-    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJlist[i,1]&bestJGene==VJlist[i,2]&Read.count>1,,]) 
+    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJlist[i,1]&bestJGene==VJlist[i,2]&Read.count>Read_thres,,]) 
     all_short_int<-lapply(all_short_i,filter_data)
     all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
     load(fnames[i])
     all_short_int2_space<-lapply(all_short_int2,add_space,hugedf = res,volume=volume)
     for (j in 1:length(all_short_int2_space))
     { 
-      all_short_int2_space[[j]]<-add_p_val(all_short_int2_space[[j]],total = nrow(all_short_i[[j]][Read.count>1,,]),correct=Q)
+      all_short_int2_space[[j]]<-add_p_val(all_short_int2_space[[j]],total = nrow(all_short_i[[j]][Read.count>Read_thres,,]),correct=Q)
     }
     resl[[i]]<-all_short_int2_space
   }
@@ -152,5 +152,5 @@ ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=50,nrec=5e5,P_thres=0.001
   compute_pgen_rda_folder(folder,cores=cores,nrec=nrec,iter=iter) #estimate CDR3aa gen prob for each sequence and save to separate res_ files
   results<-parse_rda_folder(DTlist,folder,volume = cores*iter*nrec/3) #parse res_ files
   results<-convert_comblist_to_df(results) #convert to single dataset from VJ-combs
-  select_sign(results,P_thres=P_thres,cor_method=cor_method) #filter for significant results
+  select_sign(results[!sapply(results,is.null)],P_thres=P_thres,cor_method=cor_method) #filter for significant results
 }
