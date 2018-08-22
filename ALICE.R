@@ -48,6 +48,7 @@ filter_data<-function(df)
   gr<-igraph_from_seqs(df$CDR3.amino.acid.sequence)
   df$D=degree(gr)
   df$cl=clusters(gr)$membership
+  df$total_n=nrow(df)
   df[df$D>0,]
 }  
 
@@ -64,6 +65,11 @@ all_other_letters<-function(str,ind=8){
 all_other_variants_one_mismatch<-function(str){
   unique(as.vector(sapply(2:(nchar(str)-1),all_other_letters,str=str)))
 }
+
+all_other_variants_one_mismatch_regexp<-function(str){
+  unique(as.vector(sapply(2:(nchar(str)-1),function(x){tmp<-str;substr(tmp,x,x)<-"X";tmp})))
+}
+
 
 convert_comblist_to_df<-function(comblist)
 {
@@ -145,6 +151,37 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){
   resl
 }
 
+#olga integration
+#output olga_function
+output_olga_DT<-function(DT,path="")
+{
+  tmp<-DT[,filter_data(.SD),.(bestVGene,bestJGene)]
+  tmp<-tmp[D>2][,ind:=1:.N,]
+  tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind]
+  #tmp[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]
+  #tmp2[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]
+  write.table(as.data.frame(tmp[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp.tsv")
+  write.table(as.data.frame(tmp2[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp2.tsv")
+  fn <- "tmp_out.tsv"
+  if (file.exists(fn)) file.remove(fn)
+  fn <- "tmp2_out.tsv"
+  if (file.exists(fn)) file.remove(fn)
+  system("olga-compute_pgen --humanTRB --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp.tsv -o tmp_out.tsv")
+  system("olga-compute_pgen --humanTRB --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp2.tsv -o tmp2_out.tsv")
+  probstmp<-fread("tmp_out.tsv")
+  tmp$Pgen<-probstmp$V2
+  probstmp2<-fread("tmp_2out.tsv")
+  tmp2$Pgen<-probstmp2$V2
+  #tmp$Pgen1<-tmp2[,sum(Pgen),ind]$#add all nums... add p-values...
+  #explode_tmp
+}
+#do it!!!
+  
+#parse olga_output
+input_olga<-function(DTlist,path="")
+{
+  
+}
 #run pipeline function.
 ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=50,nrec=5e5,P_thres=0.001,cor_method="BH")
 {
