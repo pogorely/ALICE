@@ -42,6 +42,20 @@ igraph_from_seqs<-function(seqs,max_errs=1) {
   graph<-set.vertex.attribute(graph, 'label', V(graph), seqs)
   graph
 }
+filter_data_dt<-function(DT){
+  DT[,leftgr:=.GRP,substr(CDR3.amino.acid.sequence,1,floor(nchar(CDR3.amino.acid.sequence)/2))]
+  DT[,rightgr:=.GRP,substr(CDR3.amino.acid.sequence,floor(nchar(CDR3.amino.acid.sequence)/2)+1,nchar(CDR3.amino.acid.sequence))]
+  #DT[,filter_data_no_igraph(.SD),leftgr]
+  
+  # set conv_groups.
+  DT[,D_left:=filter_data_no_igraph(.SD),leftgr]
+  #DT[,D_left:=D,]
+  DT[,D_right:=filter_data_no_igraph(.SD),rightgr]
+  #DT[,D_right:=D,]
+  DT[,D_id:=.N,CDR3.amino.acid.sequence]
+  DT[,D:=(D_left+D_right-D_id-1),]
+  DT
+}
 
 filter_data<-function(df)
 {
@@ -49,7 +63,16 @@ filter_data<-function(df)
   df$D=degree(gr)
   df$cl=clusters(gr)$membership
   df$total_n=nrow(df)
+  #df
   df[df$D>0,]
+}  
+
+filter_data_no_igraph<-function(df)
+{
+  if (nrow(df)>1){
+  tmp <- stringdistmatrix(df$CDR3.amino.acid.sequence,df$CDR3.amino.acid.sequence,method="hamming")
+    rowSums(tmp<=1,na.rm = T)}
+  else{1}
 }  
 
 select_sign<-function(sign_list,D_thres=2,P_thres=0.001,cor_method="BH"){ #performs multiple testing correction and returns list of significant results.
