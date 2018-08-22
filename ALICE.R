@@ -146,11 +146,11 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,Read_thres
 }
 
 #run pipeline function.
-ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=50,nrec=5e5,P_thres=0.001,cor_method="BH")
+ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=50,nrec=5e5,P_thres=0.001,Read_thres=1,cor_method="BH")
 {
-  make_rda_folder(DTlist,folder) #generate .rda files for CDR3aa gen prob estimation for each VJ
+  make_rda_folder(DTlist,folder,Read_thres=Read_thres) #generate .rda files for CDR3aa gen prob estimation for each VJ
   compute_pgen_rda_folder(folder,cores=cores,nrec=nrec,iter=iter) #estimate CDR3aa gen prob for each sequence and save to separate res_ files
-  results<-parse_rda_folder(DTlist,folder,volume = cores*iter*nrec/3) #parse res_ files
+  results<-parse_rda_folder(DTlist,folder,volume = cores*iter*nrec/3,Read_thres=Read_thres) #parse res_ files
   results<-convert_comblist_to_df(results) #convert to single dataset from VJ-combs
   select_sign(results[!sapply(results,is.null)],P_thres=P_thres,cor_method=cor_method) #filter for significant results
 }
