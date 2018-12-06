@@ -135,7 +135,6 @@ compute_pgen_rda_folder<-function(folder,prefix="",iter=50,cores=8,nrec=5e5,sile
     {
       if(!silent)print(fnames_s[i]) 
       if(!silent)print(format(Sys.time(), "%a %b %d %X %Y"))
-      
       load(fnames[i])
       res<-data.frame()
       if(nrow(shrep)!=0)
@@ -148,7 +147,7 @@ compute_pgen_rda_folder<-function(folder,prefix="",iter=50,cores=8,nrec=5e5,sile
     }
 }
 
-parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){# gets folder, returns space and space_n, and add significant also.  
+parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){# gets folder, returns space and space_n, and add significance also.  
   fnames<-list.files(folder,pattern = "res_",full.names = T)
   fnames_s<-list.files(folder,pattern = "res_",full.names = F)
   fnames_s<-gsub("res_","",fnames_s)
@@ -172,8 +171,6 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){
   names(resl)<-fnames_s
   resl
 }
-
-
 
 olga_parallel_wrapper_beta<-function(DT,cores=1){
   DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
@@ -211,7 +208,7 @@ olga_parallel_wrapper_alpha<-function(DT,cores=1,withoutVJ=F){#test_it
   DT
 }
 
-output_olga_DT<-function(DT,path="")
+output_olga_DT<-function(DT,path="",Q=9.41)
 {
   load("OLGA_V_J_hum_beta.rda")
   DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
@@ -235,10 +232,10 @@ output_olga_DT<-function(DT,path="")
   tmp2$Pgen<-probstmp2$V2
   tmp$Pgen1<-tmp2[,sum(Pgen),ind]$V1 #add all nums... add p-values...
   tmp[,Pgen3:=Pgen1-Pgen*(nchar(CDR3.amino.acid.sequence)-2),]
-  tmp[,p_value:=ppois(D,lambda = 30*n_total*Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
+  tmp[,p_value:=ppois(D,lambda = 3*Q*n_total*Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
   tmp
 }
-output_olga_DT_alpha<-function(DT,path="")
+output_olga_DT_alpha<-function(DT,path="",Q=9.41)
 {
   load("OLGA_A_hum_alpha.rda")
   DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
@@ -261,7 +258,7 @@ output_olga_DT_alpha<-function(DT,path="")
   tmp2$Pgen<-probstmp2$V2
   tmp$Pgen1<-tmp2[,sum(Pgen),ind]$V1 #add all nums... add p-values...
   tmp[,Pgen3:=Pgen1-Pgen*(nchar(CDR3.amino.acid.sequence)-2),]
-  tmp[,p_value:=ppois(D,lambda = 30*n_total*Pgen3/(OLGAVJA[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
+  tmp[,p_value:=ppois(D,lambda = 3*Q*n_total*Pgen3/(OLGAVJA[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
   tmp
 }  
 
