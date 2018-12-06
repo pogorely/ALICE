@@ -42,17 +42,17 @@ igraph_from_seqs<-function(seqs,max_errs=1) {
   graph<-set.vertex.attribute(graph, 'label', V(graph), seqs)
   graph
 }
+
 filter_data_dt<-function(DT){
-  DT[,leftgr:=.GRP,substr(CDR3.amino.acid.sequence,1,floor(nchar(CDR3.amino.acid.sequence)/2))]
-  DT[,rightgr:=.GRP,substr(CDR3.amino.acid.sequence,floor(nchar(CDR3.amino.acid.sequence)/2)+1,nchar(CDR3.amino.acid.sequence))]
+  DT[,leftgr:=.GRP,.(substr(CDR3.amino.acid.sequence,1,floor(nchar(CDR3.amino.acid.sequence)/2)),bestVGene,bestJGene)]
+  DT[,rightgr:=.GRP,.(substr(CDR3.amino.acid.sequence,floor(nchar(CDR3.amino.acid.sequence)/2)+1,nchar(CDR3.amino.acid.sequence)),bestVGene,bestJGene)]
   #DT[,filter_data_no_igraph(.SD),leftgr]
-  
   # set conv_groups.
-  DT[,D_left:=filter_data_no_igraph(.SD),leftgr]
+  DT[,D_left:=filter_data_no_igraph(.SD),.(leftgr)]
   #DT[,D_left:=D,]
-  DT[,D_right:=filter_data_no_igraph(.SD),rightgr]
+  DT[,D_right:=filter_data_no_igraph(.SD),.(rightgr)]
   #DT[,D_right:=D,]
-  DT[,D_id:=.N,CDR3.amino.acid.sequence]
+  DT[,D_id:=.N,.(CDR3.amino.acid.sequence)]
   DT[,D:=(D_left+D_right-D_id-1),]
   DT
 }
@@ -92,7 +92,6 @@ all_other_variants_one_mismatch<-function(str){
 all_other_variants_one_mismatch_regexp<-function(str){
   unique(as.vector(sapply(2:(nchar(str)-1),function(x){tmp<-str;substr(tmp,x,x)<-"X";tmp})))
 }
-
 
 convert_comblist_to_df<-function(comblist)
 {
@@ -174,15 +173,54 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){
   resl
 }
 
-#olga integration
-#output olga_function
+
+
+olga_parallel_wrapper_beta<-function(DT,cores=1){
+  DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
+  DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)]
+#  DT[,ind:=1:.N,] this is wrong for tmp2
+  fn<-paste0("tmp",1:cores,".tsv")
+  fn2<-paste0("tmp_out",1:cores,".tsv")
+  
+  for (f in c(fn,fn2))if (file.exists(f)) file.remove(f)
+  
+  DTl<-split(DT, sort((1:nrow(DT)-1)%%cores+1))
+  for (i in 1:length(DTl))
+  write.table(as.data.frame(DTl[[i]][,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = fn[i])
+  olga_commands<-paste0("olga-compute_pgen --humanTRB --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
+  system(paste0(olga_commands,collapse=" & "))
+  readline(prompt="Press [enter] to continue")
+  fnt<-do.call(rbind,lapply(fn2,fread))
+  DT$Pgen<-fnt$V2
+  DT
+}
+olga_parallel_wrapper_alpha<-function(DT,cores=1,withoutVJ=F){#test_it
+  fn<-paste0("tmp",cores,".tsv")
+  for (f in fn)if (file.exists(f)) file.remove(f)
+  DTl<-split(DT, sort((1:nrow(DT)-1)%%cores+1))
+  for (i in 1:length(DTl))
+    write.table(as.data.frame(DTl[[i]][,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = fn[i])
+  
+  olga_commands<-paste0("olga-compute_pgen --humanTRA --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
+  if (withoutVJ)   olga_commands<-paste0("olga-compute_pgen --humanTRA --display_off --seq_in 0  --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
+
+  system(paste0(olga_commands,collapse=" & "))
+  fn<-paste0("tmp_out",cores,".tsv")
+  fnt<-do.call(rbind,lapply(fn,fread))
+  DT$Pgen<-fnt$V2
+  DT
+}
+
 output_olga_DT<-function(DT,path="")
 {
-  tmp<-DT[,filter_data(.SD),.(bestVGene,bestJGene)]
-  tmp<-tmp[D>2][,ind:=1:.N,]
-  tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind]
-  #tmp[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]
-  #tmp2[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]
+  load("OLGA_V_J_hum_beta.rda")
+  DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
+  DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)]
+  
+  tmp<-filter_data_dt(DT)
+  tmp[,n_total:=.N,.(bestVGene,bestJGene)]
+  tmp<-tmp[D>2][,ind:=1:.N,] #sequences themselves
+  tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind] #all one mismatch variants with X (regexp!)
   write.table(as.data.frame(tmp[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp.tsv")
   write.table(as.data.frame(tmp2[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp2.tsv")
   fn <- "tmp_out.tsv"
@@ -193,18 +231,40 @@ output_olga_DT<-function(DT,path="")
   system("olga-compute_pgen --humanTRB --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp2.tsv -o tmp2_out.tsv")
   probstmp<-fread("tmp_out.tsv")
   tmp$Pgen<-probstmp$V2
-  probstmp2<-fread("tmp_2out.tsv")
+  probstmp2<-fread("tmp2_out.tsv")
   tmp2$Pgen<-probstmp2$V2
-  #tmp$Pgen1<-tmp2[,sum(Pgen),ind]$#add all nums... add p-values...
-  #explode_tmp
+  tmp$Pgen1<-tmp2[,sum(Pgen),ind]$V1 #add all nums... add p-values...
+  tmp[,Pgen3:=Pgen1-Pgen*(nchar(CDR3.amino.acid.sequence)-2),]
+  tmp[,p_value:=ppois(D,lambda = 30*n_total*Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
+  tmp
 }
-#do it!!!
-  
-#parse olga_output
-input_olga<-function(DTlist,path="")
+output_olga_DT_alpha<-function(DT,path="")
 {
-  
-}
+  load("OLGA_A_hum_alpha.rda")
+  DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
+  DT<-DT[bestVGene%in%row.names(OLGAVJA)&bestJGene%in%colnames(OLGAVJA)]
+  tmp<-filter_data_dt(DT)
+  tmp[,n_total:=.N,.(bestVGene,bestJGene)]
+  tmp<-tmp[D>2][,ind:=1:.N,] #sequences themselves
+  tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind] #all one mismatch variants with X (regexp!)
+  write.table(as.data.frame(tmp[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp.tsv")
+  write.table(as.data.frame(tmp2[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp2.tsv")
+  fn <- "tmp_out.tsv"
+  if (file.exists(fn)) file.remove(fn)
+  fn <- "tmp2_out.tsv"
+  if (file.exists(fn)) file.remove(fn)
+  system("olga-compute_pgen --humanTRA --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp.tsv -o tmp_out.tsv")
+  system("olga-compute_pgen --humanTRA --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp2.tsv -o tmp2_out.tsv")
+  probstmp<-fread("tmp_out.tsv")
+  tmp$Pgen<-probstmp$V2
+  probstmp2<-fread("tmp2_out.tsv")
+  tmp2$Pgen<-probstmp2$V2
+  tmp$Pgen1<-tmp2[,sum(Pgen),ind]$V1 #add all nums... add p-values...
+  tmp[,Pgen3:=Pgen1-Pgen*(nchar(CDR3.amino.acid.sequence)-2),]
+  tmp[,p_value:=ppois(D,lambda = 30*n_total*Pgen3/(OLGAVJA[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
+  tmp
+}  
+
 #run pipeline function.
 ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=50,nrec=5e5,P_thres=0.001,cor_method="BH")
 {
