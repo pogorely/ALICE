@@ -46,12 +46,8 @@ igraph_from_seqs<-function(seqs,max_errs=1) {
 filter_data_dt<-function(DT){
   DT[,leftgr:=.GRP,.(substr(CDR3.amino.acid.sequence,1,floor(nchar(CDR3.amino.acid.sequence)/2)),bestVGene,bestJGene)]
   DT[,rightgr:=.GRP,.(substr(CDR3.amino.acid.sequence,floor(nchar(CDR3.amino.acid.sequence)/2)+1,nchar(CDR3.amino.acid.sequence)),bestVGene,bestJGene)]
-  #DT[,filter_data_no_igraph(.SD),leftgr]
-  # set conv_groups.
   DT[,D_left:=filter_data_no_igraph(.SD),.(leftgr)]
-  #DT[,D_left:=D,]
   DT[,D_right:=filter_data_no_igraph(.SD),.(rightgr)]
-  #DT[,D_right:=D,]
   DT[,D_id:=.N,.(CDR3.amino.acid.sequence)]
   DT[,D:=(D_left+D_right-D_id-1),]
   DT
