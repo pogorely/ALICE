@@ -30,12 +30,13 @@ add_p_val<-function(df,total,correct=9.41){#adds column with p_value
       tmp=df$space_n*total
       correct<-coef(lm(df$D~tmp+0))[1]
     }  
-    df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
+    #df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
+    df$p_val<-ppois(q=df$D,lambda =  total*correct*df$space_n,lower.tail = F)
     df}
   else{return(df)}
 }
 
-add_p_val_ql<-function(df,total,correct=9.41,qil=F,lookupQ=NULL){#adds column with p_value  
+add_p_val_ql<-function(df,total,correct=9.41,qil=F,lookupQ=lookupQ){#adds column with p_value  
   if(!is.null(nrow(df))){
     if(correct=="auto"){
       tmp=df$space_n*total
@@ -45,7 +46,9 @@ add_p_val_ql<-function(df,total,correct=9.41,qil=F,lookupQ=NULL){#adds column wi
     {
       correct<-df[,lookupQ[cbind(paste0(bestVGene,"_",bestJGene),nchar(CDR3.amino.acid.sequence))],]#return correct - vector of size...
     }
-    df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
+    #df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
+    df$p_val<-ppois(q=df$D,lambda =  total*correct*df$space_n,lower.tail = F)
+    
     df}
   else{return(df)}
 }
@@ -66,6 +69,8 @@ filter_data_dt<-function(DT){ #calculate degree using computational trick = usag
   DT[,D_right:=filter_data_no_igraph(.SD),.(rightgr)]
   DT[,D_id:=.N,.(CDR3.amino.acid.sequence)]
   DT[,D:=(D_left+D_right-D_id-1),]
+  DT[,rightgr:=NULL,]
+  DT[,leftgr:=NULL,]
   DT[,D_left:=NULL,]#delete accesory columns
   DT[,D_right:=NULL,]
   DT[,D_id:=NULL,]
@@ -187,7 +192,7 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,R
   resl
 }
 
-olga_parallel_wrapper_beta<-function(DT,cores=1,chain="humanTRB",withoutVJ=F){#chain maybe humanTRA
+olga_parallel_wrapper_beta<-function(DT,cores=1,chain="humanTRB",withoutVJ=F,prompt=T){#chain maybe humanTRA
   load("OLGA_V_J_hum_beta.rda")
   #DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
  # DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)]#this makes it not suitable for alpha
@@ -201,14 +206,14 @@ olga_parallel_wrapper_beta<-function(DT,cores=1,chain="humanTRB",withoutVJ=F){#c
   DTl<-split(DT, sort((1:nrow(DT)-1)%%cores+1))
   for (i in 1:length(DTl))
   write.table(as.data.frame(DTl[[i]][,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = fn[i])
-  olga_commands<-paste0("olga-compute_pgen --",chain," --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
-  if (withoutVJ)   olga_commands<-paste0("olga-compute_pgen --",chain," --display_off --seq_in 0  --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
+  olga_commands<-paste0("olga-compute_pgen --",chain," --display_off --time_updates_off	--seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
+  if (withoutVJ)   olga_commands<-paste0("olga-compute_pgen --",chain," --display_off --time_updates_off	 --seq_in 0  --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
   
   system(paste0(olga_commands,collapse=" & "),wait = T)
   system("echo done",wait = T)
   
   Sys.sleep(60)#pause before read
-  readline(prompt="Press [enter] to continue")
+  if(prompt)readline(prompt="Press [enter] to continue")
   fnt<-do.call(rbind,lapply(fn2,fread))
   DT$Pgen<-fnt$V2
   DT
@@ -241,7 +246,7 @@ output_olga_DT<-function(DT,path="",Q=9.41)
   tmp
 }
 
-output_olga_DT_parallel<-function(DT,path="",Q=9.41,cores=1)
+output_olga_DT_parallel<-function(DT,path="",Q=9.41,cores=1,prompt=T)
 {
   load("OLGA_V_J_hum_beta.rda")
   DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
@@ -250,22 +255,9 @@ output_olga_DT_parallel<-function(DT,path="",Q=9.41,cores=1)
   tmp[,n_total:=.N,.(bestVGene,bestJGene)]
   tmp<-tmp[D>2][,ind:=1:.N,] #sequences themselves
   tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind] #all one mismatch variants with X (regexp!)
-  #write.table(as.data.frame(tmp[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp.tsv")
-  #write.table(as.data.frame(tmp2[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp2.tsv")
-  #fn <- "tmp_out.tsv"
-  #if (file.exists(fn)) file.remove(fn)
-  #fn <- "tmp2_out.tsv"
-  #if (file.exists(fn)) file.remove(fn)
-  #system("olga-compute_pgen --humanTRB --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp.tsv -o tmp_out.tsv")
-  #system("olga-compute_pgen --humanTRB --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp2.tsv -o tmp2_out.tsv")
-  #probstmp<-fread("tmp_out.tsv")
-  #tmp$Pgen<-probstmp$V2
-  #probstmp2<-fread("tmp2_out.tsv")
-  #tmp2$Pgen<-probstmp2$V2
-  tmp<-olga_parallel_wrapper_beta(DT = tmp,cores = cores)
-  tmp2<-olga_parallel_wrapper_beta(DT = tmp2,cores = cores)
-  
-  tmp$Pgen1<-tmp2[,sum(Pgen),ind]$V1 #add all nums... add p-values...
+  tmp<-olga_parallel_wrapper_beta(DT = tmp,cores = cores,prompt=prompt)
+  tmp2<-olga_parallel_wrapper_beta(DT = tmp2,cores = cores,prompt=prompt)
+  tmp$Pgen1<-tmp2[,sum(Pgen),ind]$V1 
   tmp[,Pgen3:=Pgen1-Pgen*(nchar(CDR3.amino.acid.sequence)-2),]
   tmp[,p_value:=ppois(D,lambda = 3*Q*n_total*Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
   tmp
@@ -297,6 +289,46 @@ output_olga_DT_alpha<-function(DT,path="",Q=9.41)
   tmp[,p_value:=ppois(D,lambda = 3*Q*n_total*Pgen3/(OLGAVJA[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
   tmp
 }  
+
+#convolution_pipeline
+run_simulations<-function(df,mc_ref,nmax=200,volume=66e6,Q=10,D_threshold=2){
+  #get distribution of counts and bin it.
+  if (nrow(df)!=0){
+    df<-find_motifs(df)
+    count_dist<-(hist(log10(df$Read.count),breaks = seq(0,6,length.out = 30),plot=F)$density*diff(hist(log10(df$Read.count),breaks = seq(0,6,length.out = 30),plot=F)$breaks))
+    #get maximum number of neighbours. 
+    #make P(S|X)
+    # print(nrow(df))
+    S_X<-convolution_size_distr2(count_dist,nmax)
+    #preproc_smth
+    huge<-mc_ref$sim_num#was rbig
+    names(huge)<-mc_ref$CDR3.amino.acid.sequence
+    #define our quantities
+    space<-numeric(nrow(df));
+    p_val_pois<-numeric(nrow(df));
+    p_val_s<-numeric(nrow(df));
+    for (i in 1:nrow(df))
+      if (df$D[i]>D_threshold&df$D[i]<nmax&df$D[i]<100)#&df$D[i]<150 fix
+      {
+        vars<-all_other_variants_one_mismatch(df$CDR3.amino.acid.sequence[i])
+        space[i]<-sum(huge[vars],na.rm=T)
+        vars_Pgen=Q*huge[vars]/volume #do we need pseudocount here?
+        X_sigma=dpois(0:nmax,lambda = nrow(df)*sum(vars_Pgen,na.rm=T))
+        p_val_pois[i]<-ppois(q =df$D[i],lambda = nrow(df)*sum(vars_Pgen,na.rm=T),lower.tail = F)
+        running_sum<-list()
+        for (j in 1:nmax){#figure out equivalent matrix multiplication
+          running_sum[[j]]<-X_sigma[j]*S_X[[j]]#add_zeros(S_X[[j]],length(S_X[[nmax]]))
+        }
+        running_sum<-Reduce(`+`,running_sum)
+        p_val_s[i]<-1-sum(running_sum[1:(which(seq(0,5*nmax,length.out = ((length(count_dist)-1)*nmax+1) )[1:length(S_X[[nmax]])] >df$s[i])[1])])
+      }
+    df$space<-space
+    df$p_val_pois<-p_val_pois
+    df$p_val_s<-p_val_s
+  }
+  df
+}
+
 
 #run pipeline function.
 ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=50,nrec=5e5,P_thres=0.001,cor_method="BH")
