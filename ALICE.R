@@ -2,11 +2,12 @@ library(data.table)
 library(igraph)
 library(stringdist)
 load("VDJT.rda")
+load("lookupQ.rda")
 source("generation.R")
 #load generation
 
 add_space<-function(df,hugedf,volume=66e6){#add space occupied by sequence neighbours. hugedf contains information of CDR3aa sequence and its generative probability. 
-  huge<-hugedf$sim_num
+  huge<-hugedf[,1]#$sim_num
   names(huge)<-hugedf$CDR3.amino.acid.sequence
   if(nrow(df)==0){return(0)}
   else{
@@ -29,6 +30,21 @@ add_p_val<-function(df,total,correct=9.41){#adds column with p_value
       tmp=df$space_n*total
       correct<-coef(lm(df$D~tmp+0))[1]
     }  
+    df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
+    df}
+  else{return(df)}
+}
+
+add_p_val_ql<-function(df,total,correct=9.41,qil=F,lookupQ=NULL){#adds column with p_value  
+  if(!is.null(nrow(df))){
+    if(correct=="auto"){
+      tmp=df$space_n*total
+      correct<-coef(lm(df$D~tmp+0))[1]
+    }  
+    if (qil)
+    {
+      correct<-df[,lookupQ[cbind(paste0(bestVGene,"_",bestJGene),nchar(CDR3.amino.acid.sequence))],]#return correct - vector of size...
+    }
     df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
     df}
   else{return(df)}
@@ -146,7 +162,7 @@ compute_pgen_rda_folder<-function(folder,prefix="",iter=50,cores=8,nrec=5e5,sile
     }
 }
 
-parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){# gets folder, returns space and space_n, and add significance also.  
+parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,Read_thres=1,qil=lookupQ){# gets folder, returns space and space_n, and add significance also.  
   fnames<-list.files(folder,pattern = "res_",full.names = T)
   fnames_s<-list.files(folder,pattern = "res_",full.names = F)
   fnames_s<-gsub("res_","",fnames_s)
@@ -156,14 +172,14 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){
   resl<-list()
   for (i in 1:nrow(VJlist)){
     if(!silent)print(i)
-    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJlist[i,1]&bestJGene==VJlist[i,2]&Read.count>1,,]) 
+    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJlist[i,1]&bestJGene==VJlist[i,2]&Read.count>Read_thres,,]) 
     all_short_int<-lapply(all_short_i,filter_data)
     all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
     load(fnames[i])
     all_short_int2_space<-lapply(all_short_int2,add_space,hugedf = res,volume=volume)
     for (j in 1:length(all_short_int2_space))
     { 
-      all_short_int2_space[[j]]<-add_p_val(all_short_int2_space[[j]],total = nrow(all_short_i[[j]][Read.count>1,,]),correct=Q)
+      all_short_int2_space[[j]]<-add_p_val(all_short_int2_space[[j]],total = nrow(all_short_i[[j]][Read.count>Read_thres,,]),correct=Q)
     }
     resl[[i]]<-all_short_int2_space
   }
@@ -172,8 +188,9 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T){
 }
 
 olga_parallel_wrapper_beta<-function(DT,cores=1,chain="humanTRB",withoutVJ=F){#chain maybe humanTRA
-  DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
-  DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)]
+  load("OLGA_V_J_hum_beta.rda")
+  #DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
+ # DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)]#this makes it not suitable for alpha
   if (! ("ind"%in%colnames(DT)))DT[,ind:=1:.N,] #add ind column for sequence combining
 
     fn<-paste0("tmp",1:cores,".tsv")
@@ -187,7 +204,10 @@ olga_parallel_wrapper_beta<-function(DT,cores=1,chain="humanTRB",withoutVJ=F){#c
   olga_commands<-paste0("olga-compute_pgen --",chain," --display_off --seq_in 0 --v_in 1 --j_in 2 --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
   if (withoutVJ)   olga_commands<-paste0("olga-compute_pgen --",chain," --display_off --seq_in 0  --lines_to_skip 1 -d 'tab' -i tmp",1:cores,".tsv -o tmp_out",1:cores,".tsv")
   
-  system(paste0(olga_commands,collapse=" & "))
+  system(paste0(olga_commands,collapse=" & "),wait = T)
+  system("echo done",wait = T)
+  
+  Sys.sleep(60)#pause before read
   readline(prompt="Press [enter] to continue")
   fnt<-do.call(rbind,lapply(fn2,fread))
   DT$Pgen<-fnt$V2
