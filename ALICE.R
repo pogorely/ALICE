@@ -4,6 +4,7 @@ library(stringdist)
 load("VDJT.rda")
 load("lookupQ.rda")
 source("generation.R")
+source("import.R")
 #load generation
 
 add_space<-function(df,hugedf,volume=66e6){#add space occupied by sequence neighbours. hugedf contains information of CDR3aa sequence and its generative probability. 
@@ -30,25 +31,31 @@ add_p_val<-function(df,total,correct=9.41){#adds column with p_value
       tmp=df$space_n*total
       correct<-coef(lm(df$D~tmp+0))[1]
     }  
-    #df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
+    df$q=correct
+    df$total_n=total
     df$p_val<-ppois(q=df$D,lambda =  total*correct*df$space_n,lower.tail = F)
     df}
   else{return(df)}
 }
 
-add_p_val_ql<-function(df,total,correct=9.41,qil=F,lookupQ=lookupQ){#adds column with p_value  
-  if(!is.null(nrow(df))){
-    if(correct=="auto"){
-      tmp=df$space_n*total
-      correct<-coef(lm(df$D~tmp+0))[1]
-    }  
-    if (qil)
+calculate_ql<-function(df){#returns lookupQ for given dataset
+  resl_data<-list()
+  for (V in segments$TRBV$V.alleles)
+    for (J in segments$TRBJ$J.alleles)
     {
-      correct<-df[,lookupQ[cbind(paste0(bestVGene,"_",bestJGene),nchar(CDR3.amino.acid.sequence))],]#return correct - vector of size...
+      #print(V)
+      resl_data[[paste0(V,"_",J,collapse="")]]<-table(c(1:50,nchar(df[bestVGene==V&bestJGene==J,CDR3.amino.acid.sequence,]  )))
     }
-    #df$p_val<-pbinom(q=df$D,size = total,prob = correct*df$space_n,lower.tail = F)
-    df$p_val<-ppois(q=df$D,lambda =  total*correct*df$space_n,lower.tail = F)
-    
+  length_matr_data<-do.call(rbind,resl_data)-1
+  prop.table(length_matr_data,margin = 1)/prop.table(length_matr,margin = 1)
+}
+
+q_for_lengths<-function(df,correct=9.41,qL=lookupQ){#gets df adds a new q.   
+  if(!is.null(nrow(df))){
+    correctq<-df[,qL[cbind(paste0(bestVGene,"_",bestJGene),nchar(CDR3.amino.acid.sequence))],]#return correct - vector of size...
+    q<-correct*(correctq/mean(correctq))
+    df$q=q
+    df$p_val<-ppois(q=df$D,lambda =  df$total_n*df$q*df$space_n,lower.tail = F)
     df}
   else{return(df)}
 }
@@ -95,6 +102,14 @@ filter_data_no_igraph<-function(df)
   else{1}
 }  
 
+filter_data_thres<-function(df,nei_read_thres=1)
+{
+  tmp <- stringdistmatrix(df$CDR3.amino.acid.sequence,df$CDR3.amino.acid.sequence,method="hamming")
+  df$D=apply(tmp,MARGIN = 1,function(x)sum(x[df$Read.count>nei_read_thres]<=1,na.rm = T))-1
+  df$total_n=nrow(df)
+  df[df$D>0,,]
+}
+
 select_sign<-function(sign_list,D_thres=2,P_thres=0.001,cor_method="BH"){ #performs multiple testing correction and returns list of significant results.
   lapply(sign_list,function(x)x[D>D_thres&space!=0,,][p.adjust(p_val,method=cor_method)<P_thres,,]) 
 }
@@ -125,14 +140,14 @@ convert_comblist_to_df<-function(comblist)
 }
 
 #pipeline functions
-make_rda_folder<-function(DTlist,folder="",prefix="",VJDT=VDJT){
+make_rda_folder<-function(DTlist,folder="",prefix="",VJDT=VDJT,Read_thres=1,Read_thres2=1){
   dir.create(folder, showWarnings = FALSE)
   VJDT<-as.data.table(VJDT)
   VJDT[,bestVGene:=V,]
   VJDT[,bestJGene:=J,]
   for (i in 1:nrow(VJDT)){
-    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJDT$bestVGene[i]&bestJGene==VJDT$bestJGene[i]&Read.count>1,,]) 
-    all_short_int<-lapply(all_short_i,filter_data)
+    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJDT$bestVGene[i]&bestJGene==VJDT$bestJGene[i]&Read.count>Read_thres,,]) 
+    all_short_int<-lapply(all_short_i,filter_data_thres,nei_read_thres=Read_thres2)
     all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
     hugel<-unlist(lapply(unique(unlist(lapply(all_short_int2,function(x){if(nrow(x)>0)x[,CDR3.amino.acid.sequence,]}))),all_other_variants_one_mismatch))
     shrep<-data.frame(CDR3.amino.acid.sequence=unique(hugel))
@@ -167,7 +182,7 @@ compute_pgen_rda_folder<-function(folder,prefix="",iter=50,cores=8,nrec=5e5,sile
     }
 }
 
-parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,Read_thres=1,qil=lookupQ){# gets folder, returns space and space_n, and add significance also.  
+parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,Read_thres=1,Read_thres2=1){# gets folder, returns space and space_n, and add significance also.  
   fnames<-list.files(folder,pattern = "res_",full.names = T)
   fnames_s<-list.files(folder,pattern = "res_",full.names = F)
   fnames_s<-gsub("res_","",fnames_s)
@@ -177,16 +192,18 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,R
   resl<-list()
   for (i in 1:nrow(VJlist)){
     if(!silent)print(i)
-    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJlist[i,1]&bestJGene==VJlist[i,2]&Read.count>Read_thres,,]) 
-    all_short_int<-lapply(all_short_i,filter_data)
-    all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
     load(fnames[i])
+    if(nrow(res)>0){
+    all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJlist[i,1]&bestJGene==VJlist[i,2]&Read.count>Read_thres,,]) 
+    all_short_int<-lapply(all_short_i,filter_data_thres,nei_read_thres=Read_thres2)
+    all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
     all_short_int2_space<-lapply(all_short_int2,add_space,hugedf = res,volume=volume)
     for (j in 1:length(all_short_int2_space))
     { 
-      all_short_int2_space[[j]]<-add_p_val(all_short_int2_space[[j]],total = nrow(all_short_i[[j]][Read.count>Read_thres,,]),correct=Q)
+      all_short_int2_space[[j]]<-add_p_val(all_short_int2_space[[j]],total = nrow(all_short_i[[j]][Read.count>Read_thres2,,]),correct=Q)
     }
     resl[[i]]<-all_short_int2_space
+    }
   }
   names(resl)<-fnames_s
   resl
@@ -291,19 +308,52 @@ output_olga_DT_alpha<-function(DT,path="",Q=9.41)
 }  
 
 #convolution_pipeline
+matchit<-function(needle,haystack,mism=1){
+  sum(nchar(agrep(needle,x = haystack,max.distance =list(sub=mism,all=mism,ins=0,del=0),value = T))==nchar(needle))
+}
+
+matchitl<-function(needle,haystack){
+  agrep(needle,x = haystack,max.distance =list(sub=1,all=1,ins=0,del=0),value = F)#problem with nested instances
+}
+
+
+find_motifs<-function(df){#compute d and s for data
+  s<-numeric(nrow(df))
+  d<-numeric(nrow(df))
+  for (i in 1:nrow(df)){
+    ml<-matchitl(df[i,CDR3.amino.acid.sequence,],df[,CDR3.amino.acid.sequence,])
+    s[i]<-df[ml,sum(log10(Read.count)),]
+    d[i]<-length(ml)-1
+  }
+  df$D=d
+  df$s=s
+  df
+}
+
+add_zeros<-function(vec,final_length){
+  if (length(vec)<final_length){
+    c(vec,rep(0,times=final_length-length(vec)))
+  }
+  else {vec}
+}
+return_convolution_power<-function(p_a,n=1,nmax=99){
+  x<-(Re(fft(fft(add_zeros(p_a,nmax))**n,inverse = T))[1:nmax])
+  x[x<0|is.na(x)]<-0
+  prop.table(x)
+}
+
+convolution_size_distr<-function(p_a,n_max,l_max=1000){
+  lapply(1:n_max,return_convolution_power,p_a=p_a,nmax=l_max)
+}
+
 run_simulations<-function(df,mc_ref,nmax=200,volume=66e6,Q=10,D_threshold=2){
   #get distribution of counts and bin it.
   if (nrow(df)!=0){
     df<-find_motifs(df)
     count_dist<-(hist(log10(df$Read.count),breaks = seq(0,6,length.out = 30),plot=F)$density*diff(hist(log10(df$Read.count),breaks = seq(0,6,length.out = 30),plot=F)$breaks))
-    #get maximum number of neighbours. 
-    #make P(S|X)
-    # print(nrow(df))
-    S_X<-convolution_size_distr2(count_dist,nmax)
-    #preproc_smth
+    S_X<-convolution_size_distr(count_dist,nmax)
     huge<-mc_ref$sim_num#was rbig
     names(huge)<-mc_ref$CDR3.amino.acid.sequence
-    #define our quantities
     space<-numeric(nrow(df));
     p_val_pois<-numeric(nrow(df));
     p_val_s<-numeric(nrow(df));
@@ -312,12 +362,12 @@ run_simulations<-function(df,mc_ref,nmax=200,volume=66e6,Q=10,D_threshold=2){
       {
         vars<-all_other_variants_one_mismatch(df$CDR3.amino.acid.sequence[i])
         space[i]<-sum(huge[vars],na.rm=T)
-        vars_Pgen=Q*huge[vars]/volume #do we need pseudocount here?
+        vars_Pgen=Q*huge[vars]/volume 
         X_sigma=dpois(0:nmax,lambda = nrow(df)*sum(vars_Pgen,na.rm=T))
         p_val_pois[i]<-ppois(q =df$D[i],lambda = nrow(df)*sum(vars_Pgen,na.rm=T),lower.tail = F)
         running_sum<-list()
         for (j in 1:nmax){#figure out equivalent matrix multiplication
-          running_sum[[j]]<-X_sigma[j]*S_X[[j]]#add_zeros(S_X[[j]],length(S_X[[nmax]]))
+          running_sum[[j]]<-X_sigma[j]*S_X[[j]]
         }
         running_sum<-Reduce(`+`,running_sum)
         p_val_s[i]<-1-sum(running_sum[1:(which(seq(0,5*nmax,length.out = ((length(count_dist)-1)*nmax+1) )[1:length(S_X[[nmax]])] >df$s[i])[1])])
@@ -328,7 +378,7 @@ run_simulations<-function(df,mc_ref,nmax=200,volume=66e6,Q=10,D_threshold=2){
   }
   df
 }
-
+#add parse_rda_convolution
 
 #run pipeline function.
 ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=50,nrec=5e5,P_thres=0.001,cor_method="BH")
