@@ -51,6 +51,7 @@ calculate_ql<-function(df){#returns lookupQ for given dataset
 }
 
 q_for_lengths<-function(df,correct=9.41,qL=lookupQ){#gets df adds a new q.   
+  if (qL=="auto")qL=calculate_ql(df)
   if(!is.null(nrow(df))){
     correctq<-df[,qL[cbind(paste0(bestVGene,"_",bestJGene),nchar(CDR3.amino.acid.sequence))],]#return correct - vector of size...
     q<-correct*(correctq/mean(correctq))
@@ -366,7 +367,7 @@ run_simulations<-function(df,mc_ref,nmax=200,volume=66e6,Q=10,D_threshold=2){
         X_sigma=dpois(0:nmax,lambda = nrow(df)*sum(vars_Pgen,na.rm=T))
         p_val_pois[i]<-ppois(q =df$D[i],lambda = nrow(df)*sum(vars_Pgen,na.rm=T),lower.tail = F)
         running_sum<-list()
-        for (j in 1:nmax){#figure out equivalent matrix multiplication
+        for (j in 1:nmax){
           running_sum[[j]]<-X_sigma[j]*S_X[[j]]
         }
         running_sum<-Reduce(`+`,running_sum)

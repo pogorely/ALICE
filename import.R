@@ -69,24 +69,25 @@ cluster_immunoseq_by_CDR3<-function(x){
   x[,.(Read.count=sum(Read.count),Read.proportion=sum(Read.proportion),CDR3.amino.acid.sequence=unique(CDR3.amino.acid.sequence)),by=.(CDR3nt,bestVGene,bestJGene)]
 }
 
-read_immunoseq_folder<-function(folder){
+read_immunoseq_folder<-function(folder,Read_thres=0){
   DTlist<-lapply(list.files(folder,full.names = T),fread)
   names(DTlist)<-list.files(folder,full.names = F)
-  print(names(DTlist))
+  #print(names(DTlist))
   lapply(DTlist,setkey)
   DTlist<-lapply(DTlist,unique)
-  DTlist<-lapply(DTlist,function(x)x[aminoAcid!="",,])
+  #DTlist<-lapply(DTlist,function(x){if ("count"%in%colnames(x))setnames(x,"count","count (templates/reads)")})
+  DTlist<-lapply(DTlist,function(x)x[aminoAcid!=""&`count (templates/reads)`>Read_thres,,])
   DTlist
 }
 
-read_immunoseq_folder_old<-function(folder){#parser for immunoseq legacy format, as in Emerson et al Plos ONE 2014
+read_immunoseq_folder_old<-function(folder,Read_thres=0){#parser for immunoseq legacy format, as in Emerson et al Plos ONE 2014
   DTlist<-lapply(list.files(folder,full.names = T),fread)
   names(DTlist)<-list.files(folder,full.names = F)
   lapply(DTlist,setnames,c("V1","V2","V3","V6","V8","V22"),c("nucleotide","aminoAcid","count","vMaxResolved","vGeneName","jGeneName"))
-  print(names(DTlist))
+  #print(names(DTlist))
   lapply(DTlist,setkey)
   DTlist<-lapply(DTlist,unique)
-  DTlist<-lapply(DTlist,function(x)x[aminoAcid!="",,])
+  DTlist<-lapply(DTlist,function(x)x[aminoAcid!=""&`count`>Read_thres,,])
   DTlist
 }
 
@@ -106,11 +107,6 @@ convert_immunoseq<-function(dt){
   dt[,bestVGene:=Vv[`vGeneName`],] #V gene conversion
   dt[,bestJGene:=Jv[`jGeneName`],] #J gene conversion
   dt[,.(Read.count, Read.proportion,CDR3.amino.acid.sequence, bestVGene, bestJGene,CDR3.nucleotide.sequence),]
-  #add neccessary columns:
-  #bestV
-  #bestJ
-  #CDR3
-  #Read.count.
 }
 
 convert_immunoseq_old<-function(dt){
@@ -121,26 +117,21 @@ convert_immunoseq_old<-function(dt){
   dt[,CDR3.amino.acid.sequence:=`aminoAcid`,]
   dt[,bestVGene:=Vv[`vGeneName`],] #conversion!!!
   dt[,bestJGene:=Jv[`jGeneName`],] #conversion!!!
-  dt[,.(Read.count, CDR3.amino.acid.sequence, bestVGene, bestJGene,CDR3.nucleotide.sequence),]
-  #add neccessary columns:
-  #bestV
-  #bestJ
-  #CDR3
-  #Read.count.
+  dt[,.(Read.count,Read.proportion, CDR3.amino.acid.sequence, bestVGene, bestJGene,CDR3.nucleotide.sequence),]
 }
 
-import_immunoseq_pipeline<-function(folder){
-  DTlist<-read_immunoseq_folder(folder)
+import_immunoseq_pipeline<-function(folder,trim=0,Read_thres=1){
+  DTlist<-read_immunoseq_folder(folder,Read_thres)
   DTlist<-lapply(DTlist,convert_immunoseq)
-  DTlist<-lapply(DTlist,add_cdr3nt_to_immunoseq)
+  DTlist<-lapply(DTlist,add_cdr3nt_to_immunoseq,trim=trim)
   DTlist<-lapply(DTlist,cluster_immunoseq_by_CDR3)
   DTlist
 }
 
-import_immunoseq_pipeline_old<-function(folder){#special parser for legacy immunoseq format
-  DTlist<-read_immunoseq_folder_old(folder)
+import_immunoseq_pipeline_old<-function(folder,trim=0,Read_thres=1){#special parser for legacy immunoseq format
+  DTlist<-read_immunoseq_folder_old(folder,Read_thres)
   DTlist<-lapply(DTlist,convert_immunoseq_old)
-  DTlist<-lapply(DTlist,add_cdr3nt_to_immunoseq)
+  DTlist<-lapply(DTlist,add_cdr3nt_to_immunoseq,trim=trim)
   DTlist<-lapply(DTlist,cluster_immunoseq_by_CDR3)
   DTlist
 }
