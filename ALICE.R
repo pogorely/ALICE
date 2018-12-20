@@ -157,6 +157,7 @@ convert_comblist_to_df<-function(comblist)
 
 #pipeline functions
 make_rda_folder<-function(DTlist,folder="",prefix="",VJDT=VDJT,Read_thres=1,Read_thres2=1){
+
   dir.create(folder, showWarnings = FALSE)
   VJDT<-as.data.table(VJDT)
   VJDT[,bestVGene:=V,]
@@ -164,6 +165,7 @@ make_rda_folder<-function(DTlist,folder="",prefix="",VJDT=VDJT,Read_thres=1,Read
   for (i in 1:nrow(VJDT)){
     all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJDT$bestVGene[i]&bestJGene==VJDT$bestJGene[i]&Read.count>Read_thres,,]) 
     all_short_int<-lapply(all_short_i,filter_data_thres,nei_read_thres=Read_thres2)
+
     all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
     hugel<-unlist(lapply(unique(unlist(lapply(all_short_int2,function(x){if(nrow(x)>0)x[,CDR3.amino.acid.sequence,]}))),all_other_variants_one_mismatch))
     shrep<-data.frame(CDR3.amino.acid.sequence=unique(hugel))
@@ -199,6 +201,7 @@ compute_pgen_rda_folder<-function(folder,prefix="",iter=50,cores=8,nrec=5e5,sile
 }
 
 parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,Read_thres=1,Read_thres2=1){# gets folder, returns space and space_n, and add significance also.  
+
   fnames<-list.files(folder,pattern = "res_",full.names = T)
   fnames_s<-list.files(folder,pattern = "res_",full.names = F)
   fnames_s<-gsub("res_","",fnames_s)
@@ -208,6 +211,7 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,R
   resl<-list()
   for (i in 1:nrow(VJlist)){
     if(!silent)print(i)
+
     load(fnames[i])
     if(nrow(res)>0){
     all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJlist[i,1]&bestJGene==VJlist[i,2]&Read.count>Read_thres,,]) 
@@ -216,7 +220,9 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,R
     all_short_int2_space<-lapply(all_short_int2,add_space,hugedf = res,volume=volume)
     for (j in 1:length(all_short_int2_space))
     { 
+
       all_short_int2_space[[j]]<-add_p_val(all_short_int2_space[[j]],total = nrow(all_short_i[[j]][Read.count>Read_thres2,,]),correct=Q)
+
     }
     resl[[i]]<-all_short_int2_space
     }
@@ -397,6 +403,7 @@ run_simulations<-function(df,mc_ref,nmax=200,volume=66e6,Q=10,D_threshold=2){
 #add parse_rda_convolution
 
 #run pipeline function.
+
 ALICE_pipeline<-function(DTlist,folder="",cores=1,iter=10,nrec=5e5,P_thres=0.001,cor_method="BH",qL=F,Read_count_filter=0,Read_count_neighbour=1)
 {
   make_rda_folder(DTlist,folder,Read_thres = Read_count_filter,Read_thres2 = Read_count_neighbour) #generate .rda files for CDR3aa gen prob estimation for each VJ
@@ -406,6 +413,6 @@ ALICE_pipeline<-function(DTlist,folder="",cores=1,iter=10,nrec=5e5,P_thres=0.001
   if (qL==T)
     for (i in 1:length(DTlist))results[[i]]<-q_for_lengths(results[[i]],qL=calculate_ql(DTlist[[i]]))
   select_sign(results,P_thres=P_thres,cor_method=cor_method) #filter for significant results
-}
+
 
 
