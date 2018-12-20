@@ -128,12 +128,12 @@ import_immunoseq_pipeline<-function(folder,trim=0,Read_thres=1){
   DTlist
 }
 
-import_immunoseq_pipeline_old<-function(folder,trim=0,Read_thres=1){#special parser for legacy immunoseq format
+import_immunoseq_pipeline_legacy<-function(folder,trim=0,Read_thres=1){#special parser for legacy immunoseq format
   DTlist<-read_immunoseq_folder_old(folder,Read_thres)
   DTlist<-lapply(DTlist,convert_immunoseq_old)
   DTlist<-lapply(DTlist,add_cdr3nt_to_immunoseq,trim=trim)
   DTlist<-lapply(DTlist,cluster_immunoseq_by_CDR3)
   DTlist
 }
-#import vdjtools: 
+
 
