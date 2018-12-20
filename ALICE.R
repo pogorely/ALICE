@@ -397,7 +397,7 @@ run_simulations<-function(df,mc_ref,nmax=200,volume=66e6,Q=10,D_threshold=2){
 #add parse_rda_convolution
 
 #run pipeline function.
-ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=50,nrec=5e5,P_thres=0.001,cor_method="BH",qL=F,Read_thres1=0,Read_thres2=1)
+ALICE_pipeline<-function(DTlist,folder="",cores=8,iter=25,nrec=5e5,P_thres=0.001,cor_method="BH",qL=F,Read_thres1=0,Read_thres2=1)
 {
   make_rda_folder(DTlist,folder) #generate .rda files for CDR3aa gen prob estimation for each VJ
   compute_pgen_rda_folder(folder,cores=cores,nrec=nrec,iter=iter) #estimate CDR3aa gen prob for each sequence and save to separate res_ files
