@@ -85,6 +85,21 @@ filter_data_dt<-function(DT){ #calculate degree using computational trick = usag
   DT
 }
 
+filter_data_dt_thres<-function(DT,Read_thres=1){ #calculate degree using computational trick = usage of sequences with identical left or right parts.
+  DT[,leftgr:=.GRP,.(substr(CDR3.amino.acid.sequence,1,floor(nchar(CDR3.amino.acid.sequence)/2)),bestVGene,bestJGene)]
+  DT[,rightgr:=.GRP,.(substr(CDR3.amino.acid.sequence,floor(nchar(CDR3.amino.acid.sequence)/2)+1,nchar(CDR3.amino.acid.sequence)),bestVGene,bestJGene)]
+  DT[,D_left:=filter_data_thres(.SD,nei_read_thres = Read_thres),.(leftgr)]
+  DT[,D_right:=filter_data_thres(.SD,nei_read_thres = Read_thres),.(rightgr)]
+  DT[,D_id:=.N,.(CDR3.amino.acid.sequence)]
+  DT[,D:=(D_left+D_right-D_id-1),]
+  DT[,rightgr:=NULL,]
+  DT[,leftgr:=NULL,]
+  DT[,D_left:=NULL,]#delete accesory columns
+  DT[,D_right:=NULL,]
+  DT[,D_id:=NULL,]
+  DT
+}
+
 filter_data<-function(df)
 {
   gr<-igraph_from_seqs(df$CDR3.amino.acid.sequence)
