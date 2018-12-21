@@ -287,13 +287,13 @@ output_olga_DT<-function(DT,Q=9.41)
   tmp
 }
 
-output_olga_DT_parallel<-function(DT,Q=9.41,cores=1,prompt=F)
+output_olga_DT_parallel<-function(DT,Q=9.41,cores=1,prompt=F,Read_thres=0,Read_thres2=1)
 {
   load("OLGA_V_J_hum_beta.rda")
   DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
-  DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)] #filter V and J for present in model
-  tmp<-filter_data_dt(DT)
-  tmp[,n_total:=.N,.(bestVGene,bestJGene)]
+  DT<-DT[Read.count>Read_thres][bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)] #filter V and J for present in model
+  tmp<-filter_data_dt_thres(DT,Read_thres = Read_thres2)
+  tmp[Read.count>Read_thres2,n_total:=.N,.(bestVGene,bestJGene)]
   tmp<-tmp[D>2][,ind:=1:.N,] 
   tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind] #all one mismatch variants with X (regexp!)
   tmp<-olga_parallel_wrapper_beta(DT = tmp,cores = cores,prompt=prompt)
@@ -421,7 +421,7 @@ ALICE_pipeline<-function(DTlist,folder="",cores=1,iter=10,nrec=5e5,P_thres=0.001
 
 ALICE_pipeline_OLGA<-function(DTlist,cores=1,P_thres=0.001,cor_method="BH",qL=F,Read_count_filter=0,Read_count_neighbour=1)
 {
- results<-lapply(DTlist,output_olga_DT_parallel,cores=cores)
+ results<-lapply(DTlist,output_olga_DT_parallel,cores=cores,Read_thres = Read_count_filter,Read_thres2 = Read_count_neighbour)
   if (qL==T)
     for (i in 1:length(DTlist))results[[i]]<-q_for_lengths(results[[i]],qL=calculate_ql(DTlist[[i]]))
   select_sign(results,P_thres=P_thres,cor_method=cor_method) #filter for significant results

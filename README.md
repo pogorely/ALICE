@@ -44,10 +44,12 @@ For this VJ-combination we have no significant results in day 0 timepoint, and 3
 
 Note, that for demo purposes we run it on 1 core with 10 iterations (0.5 mln sequences in each iteration) for generative probability estimation simulation. Total number of simulated TCR sequences (both inframe and out-of-frame) in this case is 5 million. 
 
-*Read_count_filter*(default 0) and *Read_count_neighbour*(default 1) parameters are two conceptually different count threshold for clones considered by the algorithm. Algorithm discards all clones with count  *Read_count_filter* or less prior to analysis, and it does not consider as neighbours clone with count *Read_count_neighbour* or less (but such clones are not discarded, so if they have a lot of high count neighbours, it could be significant hit).
-
 In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 100 mln simulated sequences for each VJ-class, and this takes a lot of time. 
 Datasets from the paper are available [here](https://github.com/pogorely/ALICE_sample_data).
+
+###Advanced usage
+*Read_count_filter*(default 0) and *Read_count_neighbour*(default 1) parameters are two conceptually different count threshold for clones considered by the algorithm. Algorithm discards all clones with count  *Read_count_filter* or less prior to analysis, and it does not consider as neighbours clone with count *Read_count_neighbour* or less (but such clones are not discarded, so if they have a lot of high count neighbours, it could be significant hit).
+*qL*(default is false) uses different selection factor for different lengths instead of universal selection factor. 
 
 ## Input file format
 Algorithm operates on R *data.table* with following mandatory columns: 
@@ -65,7 +67,7 @@ results<-ALICE_pipeline(dtlist)
 ```
 
 ## (Experimental) Using pipeline with OLGA for Pgen estimation
-Install OLGA (see [OLGA github](https://cloud.r-project.org/) for details).
+Install OLGA first (see [OLGA github](https://cloud.r-project.org/) for details).
 
 ALICE will call OLGA in background. Multi-core usage is not available on Windows.  
 
