@@ -47,9 +47,10 @@ Note, that for demo purposes we run it on 1 core with 10 iterations (0.5 mln seq
 In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 100 mln simulated sequences for each VJ-class, and this takes a lot of time. 
 Datasets from the paper are available [here](https://github.com/pogorely/ALICE_sample_data).
 
-###Advanced usage
-*Read_count_filter*(default 0) and *Read_count_neighbour*(default 1) parameters are two conceptually different count threshold for clones considered by the algorithm. Algorithm discards all clones with count  *Read_count_filter* or less prior to analysis, and it does not consider as neighbours clone with count *Read_count_neighbour* or less (but such clones are not discarded, so if they have a lot of high count neighbours, it could be significant hit).
-*qL*(default is false) uses different selection factor for different lengths instead of universal selection factor. 
+###Additional parameters
+*Read_count_filter*(default 0) and *Read_count_neighbour*(default 1) parameters are two conceptually different count threshold for clones considered by the algorithm. 
+Algorithm discards all clones with count  *Read_count_filter* or less prior to analysis, and it does not consider as neighbours clone with count *Read_count_neighbour* or less (but such clones are not discarded, so if they have a lot of high count neighbours, it could be significant hit).
+*qL*(default is FALSE) uses different selection factor for different lengths instead of universal selection factor. 
 
 ## Input file format
 Algorithm operates on R *data.table* with following mandatory columns: 
