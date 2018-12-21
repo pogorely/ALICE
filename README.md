@@ -49,8 +49,12 @@ Datasets from the paper are available [here](https://github.com/pogorely/ALICE_s
 
 ###Additional parameters
 *Read_count_filter*(default 0) and *Read_count_neighbour*(default 1) parameters are two conceptually different count threshold for clones considered by the algorithm. 
+
 Algorithm discards all clones with count  *Read_count_filter* or less prior to analysis, and it does not consider as neighbours clone with count *Read_count_neighbour* or less (but such clones are not discarded, so if they have a lot of high count neighbours, it could be significant hit).
+
 *qL*(default is FALSE) uses different selection factor for different lengths instead of universal selection factor. 
+
+*cor_method* (default "BH") specifies multiple testing correction method supplied to *p.adjust* function from *stats* package. *P_thres* (default 0.001) determines p-value threshold after correction.
 
 ## Input file format
 Algorithm operates on R *data.table* with following mandatory columns: 
