@@ -43,7 +43,10 @@ sapply(S1_alice,nrow)
 For this VJ-combination we have no significant results in day 0 timepoint, and 34 significant hits in day 15 timepoint. 
 
 Note, that for demo purposes we run it on 1 core with 10 iterations (0.5 mln sequences in each iteration) for generative probability estimation simulation. Total number of simulated TCR sequences (both inframe and out-of-frame) in this case is 5 million. 
-In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 200 mln simulated sequences for each VJ-class, and this takes a lot of time. 
+
+*Read_count_filter*(default 0) and *Read_count_neighbour*(default 1) parameters are two conceptually different count threshold for clones considered by the algorithm. Algorithm discards all clones with count  *Read_count_filter* or less prior to analysis, and it does not consider as neighbours clone with count *Read_count_neighbour* or less (but such clones are not discarded, so if they have a lot of high count neighbours, it could be significant hit).
+
+In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 100 mln simulated sequences for each VJ-class, and this takes a lot of time. 
 Datasets from the paper are available [here](https://github.com/pogorely/ALICE_sample_data).
 
 ## Input file format
@@ -52,3 +55,31 @@ Algorithm operates on R *data.table* with following mandatory columns:
 *CDR3.amino.acid.sequence*, *bestVGene*, *bestJGene*, *Read.count*. 
 
 See sample datasets in *sample* folder.
+
+There is a pipeline to import data in immunoSEQ format. It imports all files in given *folder* with counts larger than *Read_thres*, and also identifies CDR3nt and collapses clones with unique CDR3nt+V+J. immunoSEQ data with short reads do not contain complete CDR3nt sequence. For such data specify *trim* parameter (for reads of length 60 typically *trim=3*), in this case algorithm will identified CDR3nt trimmed from J side by certain number of amino acids.  
+
+```R
+source("import.R")
+dtlist<-import_immunoseq_pipeline(folder="path",trim=3,Read_thres=0)
+results<-ALICE_pipeline(dtlist)
+```
+
+## (Experimental) Using pipeline with OLGA for Pgen estimation
+Install OLGA (see [OLGA github](https://cloud.r-project.org/) for details).
+
+ALICE will call OLGA in background. Multi-core usage is not available on Windows.  
+
+```R
+library(data.table)
+source("ALICE.R")
+
+#import data
+
+S1d15<-fread("sample/S1_d15_V9_J2_7.tsv")
+S1d0<-fread("sample/S1_d0_V9_J2_7.tsv")
+S1<-list(d0=S1d0,d15=S1d15)
+
+S1_alice<-ALICE_pipeline_OLGA(DTlist=S1,folder="S1_res",cores=1)
+sapply(S1_alice,nrow)
+
+```

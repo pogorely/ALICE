@@ -258,14 +258,14 @@ olga_parallel_wrapper_beta<-function(DT,cores=1,chain="humanTRB",withoutVJ=F,pro
   DT
 }
 
-output_olga_DT<-function(DT,path="",Q=9.41)
+output_olga_DT<-function(DT,Q=9.41)
 {
   load("OLGA_V_J_hum_beta.rda")
   DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
   DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)] #filter V and J for present in model
   tmp<-filter_data_dt(DT)
   tmp[,n_total:=.N,.(bestVGene,bestJGene)]
-  tmp<-tmp[D>2][,ind:=1:.N,] #sequences themselves
+  tmp<-tmp[D>2][,ind:=1:.N,] 
   tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind] #all one mismatch variants with X (regexp!)
   write.table(as.data.frame(tmp[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp.tsv")
   write.table(as.data.frame(tmp2[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp2.tsv")
@@ -281,24 +281,28 @@ output_olga_DT<-function(DT,path="",Q=9.41)
   tmp2$Pgen<-probstmp2$V2
   tmp$Pgen1<-tmp2[,sum(Pgen),ind]$V1 #add all nums... add p-values...
   tmp[,Pgen3:=Pgen1-Pgen*(nchar(CDR3.amino.acid.sequence)-2),]
-  tmp[,p_value:=ppois(D,lambda = 3*Q*n_total*Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
+  tmp[,space:=Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),]
+  tmp[,space_n:=Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),]
+  tmp[,p_val:=ppois(D,lambda = 3*Q*n_total*Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
   tmp
 }
 
-output_olga_DT_parallel<-function(DT,path="",Q=9.41,cores=1,prompt=T)
+output_olga_DT_parallel<-function(DT,Q=9.41,cores=1,prompt=F)
 {
   load("OLGA_V_J_hum_beta.rda")
   DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
   DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)] #filter V and J for present in model
   tmp<-filter_data_dt(DT)
   tmp[,n_total:=.N,.(bestVGene,bestJGene)]
-  tmp<-tmp[D>2][,ind:=1:.N,] #sequences themselves
+  tmp<-tmp[D>2][,ind:=1:.N,] 
   tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind] #all one mismatch variants with X (regexp!)
   tmp<-olga_parallel_wrapper_beta(DT = tmp,cores = cores,prompt=prompt)
   tmp2<-olga_parallel_wrapper_beta(DT = tmp2,cores = cores,prompt=prompt)
   tmp$Pgen1<-tmp2[,sum(Pgen),ind]$V1 
   tmp[,Pgen3:=Pgen1-Pgen*(nchar(CDR3.amino.acid.sequence)-2),]
-  tmp[,p_value:=ppois(D,lambda = 3*Q*n_total*Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
+  tmp[,space:=Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),]
+  tmp[,space_n:=Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),]
+  tmp[,p_val:=ppois(D,lambda = 3*Q*n_total*Pgen3/(OLGAVJ[cbind(bestVGene,bestJGene)]),lower.tail = F),]# 007 is VJ_comb coeff!!!
   tmp
 }
 
@@ -413,6 +417,17 @@ ALICE_pipeline<-function(DTlist,folder="",cores=1,iter=10,nrec=5e5,P_thres=0.001
   if (qL==T)
     for (i in 1:length(DTlist))results[[i]]<-q_for_lengths(results[[i]],qL=calculate_ql(DTlist[[i]]))
   select_sign(results,P_thres=P_thres,cor_method=cor_method) #filter for significant results
+}
+
+ALICE_pipeline_OLGA<-function(DTlist,cores=1,P_thres=0.001,cor_method="BH",qL=F,Read_count_filter=0,Read_count_neighbour=1)
+{
+ results<-lapply(DTlist,output_olga_DT_parallel,cores=cores)
+  if (qL==T)
+    for (i in 1:length(DTlist))results[[i]]<-q_for_lengths(results[[i]],qL=calculate_ql(DTlist[[i]]))
+  select_sign(results,P_thres=P_thres,cor_method=cor_method) #filter for significant results
+}
+
+
 
 
 
