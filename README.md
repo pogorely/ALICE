@@ -72,7 +72,7 @@ results<-ALICE_pipeline(dtlist)
 ```
 
 ## (Experimental) Using pipeline with OLGA for Pgen estimation
-Install OLGA first (see [OLGA github](https://cloud.r-project.org/) for details).
+Install OLGA first (see [OLGA github](https://github.com/zsethna/OLGA) for details).
 
 ALICE will call OLGA in background. Multi-core usage is not available on Windows.  
 
