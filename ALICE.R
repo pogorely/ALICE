@@ -416,7 +416,7 @@ ALICE_pipeline<-function(DTlist,folder="",cores=1,iter=10,nrec=5e5,P_thres=0.001
   results<-convert_comblist_to_df(results) #convert to single dataset from VJ-combs
   if (qL==T)
     for (i in 1:length(DTlist))results[[i]]<-q_for_lengths(results[[i]],qL=calculate_ql(DTlist[[i]]))
-  select_sign(results,P_thres=P_thres,cor_method=cor_method) #filter for significant results
+  select_sign(results[!sapply(results,is.null)],P_thres=P_thres,cor_method=cor_method) #filter for significant results
 }
 
 ALICE_pipeline_OLGA<-function(DTlist,cores=1,P_thres=0.001,cor_method="BH",qL=F,Read_count_filter=0,Read_count_neighbour=1)
@@ -424,7 +424,7 @@ ALICE_pipeline_OLGA<-function(DTlist,cores=1,P_thres=0.001,cor_method="BH",qL=F,
  results<-lapply(DTlist,output_olga_DT_parallel,cores=cores,Read_thres = Read_count_filter,Read_thres2 = Read_count_neighbour)
   if (qL==T)
     for (i in 1:length(DTlist))results[[i]]<-q_for_lengths(results[[i]],qL=calculate_ql(DTlist[[i]]))
-  select_sign(results,P_thres=P_thres,cor_method=cor_method) #filter for significant results
+  select_sign(results[!sapply(results,is.null)],P_thres=P_thres,cor_method=cor_method) #filter for significant results
 }
 
 
