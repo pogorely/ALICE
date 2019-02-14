@@ -85,7 +85,7 @@ S1d15<-fread("sample/S1_d15_V9_J2_7.tsv")
 S1d0<-fread("sample/S1_d0_V9_J2_7.tsv")
 S1<-list(d0=S1d0,d15=S1d15)
 
-S1_alice<-ALICE_pipeline_OLGA(DTlist=S1,folder="S1_res",cores=1)
+S1_alice<-ALICE_pipeline_OLGA(DTlist=S1,cores=1)
 sapply(S1_alice,nrow)
 
 ```
