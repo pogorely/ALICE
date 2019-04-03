@@ -123,7 +123,8 @@ filter_data_thres<-function(df,nei_read_thres=1)
   tmp <- stringdistmatrix(df$CDR3.amino.acid.sequence,df$CDR3.amino.acid.sequence,method="hamming")
   df$D=apply(tmp,MARGIN = 1,function(x)sum(x[df$Read.count>nei_read_thres]<=1,na.rm = T))-1
   df$total_n=nrow(df)
-  df[df$D>0,,]
+  df
+  #df[df$D>0,,]
 }
 
 select_sign<-function(sign_list,D_thres=2,P_thres=0.001,cor_method="BH"){ #performs multiple testing correction and returns list of significant results.
@@ -258,14 +259,14 @@ olga_parallel_wrapper_beta<-function(DT,cores=1,chain="humanTRB",withoutVJ=F,pro
   DT
 }
 
-output_olga_DT<-function(DT,Q=9.41)
+output_olga_DT<-function(DT,Q=9.41,D_thres=2)
 {
   load("OLGA_V_J_hum_beta.rda")
   DT<-DT[!grepl(CDR3.amino.acid.sequence,pattern = "*",fixed = T)&((nchar(CDR3.nucleotide.sequence)%%3)==0)]
   DT<-DT[bestVGene%in%row.names(OLGAVJ)&bestJGene%in%colnames(OLGAVJ)] #filter V and J for present in model
   tmp<-filter_data_dt(DT)
   tmp[,n_total:=.N,.(bestVGene,bestJGene)]
-  tmp<-tmp[D>2][,ind:=1:.N,] 
+  tmp<-tmp[D>D_thres][,ind:=1:.N,] 
   tmp2<-tmp[,.(bestVGene,bestJGene,CDR3.amino.acid.sequence=all_other_variants_one_mismatch_regexp(CDR3.amino.acid.sequence)),ind] #all one mismatch variants with X (regexp!)
   write.table(as.data.frame(tmp[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp.tsv")
   write.table(as.data.frame(tmp2[,.(CDR3.amino.acid.sequence,bestVGene,bestJGene,ind),]),quote=F,row.names = F,sep = "\t",file = "tmp2.tsv")
