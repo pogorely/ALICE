@@ -97,6 +97,7 @@ filter_data_dt_thres<-function(DT,Read_thres=1){ #calculate degree using computa
   DT[,D_left:=NULL,]#delete accesory columns
   DT[,D_right:=NULL,]
   DT[,D_id:=NULL,]
+  DT[D<0,D:=0,]
   DT
 }
 
@@ -120,10 +121,13 @@ filter_data_no_igraph<-function(df)
 
 filter_data_thres<-function(df,nei_read_thres=1)
 {
+  if (nrow(df)>1){
   tmp <- stringdistmatrix(df$CDR3.amino.acid.sequence,df$CDR3.amino.acid.sequence,method="hamming")
-  df$D=apply(tmp,MARGIN = 1,function(x)sum(x[df$Read.count>nei_read_thres]<=1,na.rm = T))-1
-  df$total_n=nrow(df)
-  df
+#  df$D=
+    apply(tmp,MARGIN = 1,function(x)sum(x[df$Read.count>nei_read_thres]<=1,na.rm = T))-0}
+  else{1}
+  #df$total_n=nrow(df)
+  #df
   #df[df$D>0,,]
 }
 
