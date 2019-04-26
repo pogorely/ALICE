@@ -48,6 +48,7 @@ In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 100 
 Datasets from the paper are available [here](https://github.com/pogorely/ALICE_sample_data).
 
 ###Additional parameters
+
 *Read_count_filter*(default 0) and *Read_count_neighbour*(default 1) parameters are two conceptually different count threshold for clones considered by the algorithm. 
 
 Algorithm discards all clones with count  *Read_count_filter* or less prior to analysis, and it does not consider as neighbours clone with count *Read_count_neighbour* or less (but such clones are not discarded, so if they have a lot of high count neighbours, it could be significant hit).
@@ -74,18 +75,6 @@ results<-ALICE_pipeline(dtlist)
 ## (Experimental) Using pipeline with OLGA for Pgen estimation
 Install OLGA first (see [OLGA github](https://github.com/zsethna/OLGA) for details).
 
-On `Rstudio` server environments with limited write access you may need to install OLGA using the --user command:
-```
-git clone <OLGA>
-cd OLGA
-python setup.py install --user
-```
-
-This installs `olga-compute_pgen` and `olga-generate_sequences` to `~/Username/.local/bin`, so this must be added to you PATH within your `.Rprofile` file:
-`Sys.setenv(PATH="/Username/.local/bin:usr/bin")`
-
-Remember to then reload your .Rprofile using 'source(".Rprofile")'
-
 ALICE will call OLGA in background. Multi-core usage is not available on Windows.  
 
 ```R
@@ -101,4 +90,17 @@ S1_alice<-ALICE_pipeline_OLGA(DTlist=S1,cores=1)
 sapply(S1_alice,nrow)
 
 ```
-For this VJ-combination we have 21 significant results at the day 0 timepoint, and 94 significant hits at the day 15 timepoint. 
+For this VJ-combination we have 0 significant results at the day 0 timepoint, and 32 significant hits at the day 15 timepoint.
+
+Note:
+On `Rstudio` server environments with limited write access you may need to install OLGA using the --user command:
+```
+git clone <OLGA>
+cd OLGA
+python setup.py install --user
+```
+
+This installs `olga-compute_pgen` and `olga-generate_sequences` to `~/Username/.local/bin`, so this must be added to you PATH within your `.Rprofile` file:
+`Sys.setenv(PATH="/Username/.local/bin:usr/bin")`
+
+Remember to then reload your .Rprofile using 'source(".Rprofile")'
