@@ -74,6 +74,18 @@ results<-ALICE_pipeline(dtlist)
 ## (Experimental) Using pipeline with OLGA for Pgen estimation
 Install OLGA first (see [OLGA github](https://github.com/zsethna/OLGA) for details).
 
+On `Rstudio` server environments with limited write access you may need to install OLGA using the --user command:
+```
+git clone <OLGA>
+cd OLGA
+python setup.py install --user
+```
+
+This installs `olga-compute_pgen` and `olga-generate_sequences` to `~/Username/.local/bin`, so this must be added to you PATH within your `.Rprofile` file:
+`Sys.setenv(PATH="/Username/.local/bin:usr/bin")`
+
+Remember to then reload your .Rprofile using 'source(".Rprofile")'
+
 ALICE will call OLGA in background. Multi-core usage is not available on Windows.  
 
 ```R
@@ -85,7 +97,8 @@ S1d15<-fread("sample/S1_d15_V9_J2_7.tsv")
 S1d0<-fread("sample/S1_d0_V9_J2_7.tsv")
 S1<-list(d0=S1d0,d15=S1d15)
 
-S1_alice<-ALICE_pipeline_OLGA(DTlist=S1,folder="S1_res",cores=1)
+S1_alice<-ALICE_pipeline_OLGA(DTlist=S1,cores=1)
 sapply(S1_alice,nrow)
 
 ```
+For this VJ-combination we have 21 significant results at the day 0 timepoint, and 94 significant hits at the day 15 timepoint. 
