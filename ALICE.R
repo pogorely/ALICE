@@ -123,13 +123,18 @@ filter_data_thres<-function(df,nei_read_thres=1)
 {
   if (nrow(df)>1){
   tmp <- stringdistmatrix(df$CDR3.amino.acid.sequence,df$CDR3.amino.acid.sequence,method="hamming")
-#  df$D=
     apply(tmp,MARGIN = 1,function(x)sum(x[df$Read.count>nei_read_thres]<=1,na.rm = T))-0}
   else{1}
-  #df$total_n=nrow(df)
-  #df
-  #df[df$D>0,,]
 }
+
+filter_data_thres_df<-function(df,nei_read_thres=1)
+{
+  tmp <- stringdistmatrix(df$CDR3.amino.acid.sequence,df$CDR3.amino.acid.sequence,method="hamming")
+  df$D=apply(tmp,MARGIN = 1,function(x)sum(x[df$Read.count>nei_read_thres]<=1,na.rm = T))-1
+  df$total_n=nrow(df)
+  df[df$D>0,,]
+}
+
 
 select_sign<-function(sign_list,D_thres=2,P_thres=0.001,cor_method="BH"){ #performs multiple testing correction and returns list of significant results.
   lapply(sign_list,function(x)x[D>D_thres&space!=0,,][p.adjust(p_val,method=cor_method)<P_thres,,]) 
@@ -169,9 +174,9 @@ make_rda_folder<-function(DTlist,folder="",prefix="",VJDT=VDJT,Read_thres=1,Read
   VJDT[,bestJGene:=J,]
   for (i in 1:nrow(VJDT)){
     all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJDT$bestVGene[i]&bestJGene==VJDT$bestJGene[i]&Read.count>Read_thres,,]) 
-    all_short_int<-lapply(all_short_i,filter_data_thres,nei_read_thres=Read_thres2)
+    all_short_int<-lapply(all_short_i,filter_data_thres_df,nei_read_thres=Read_thres2)
 
-    all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
+    all_short_int2<-lapply(all_short_int,function(x)if(!is.null(nrow(x)))x[D>2,])
     hugel<-unlist(lapply(unique(unlist(lapply(all_short_int2,function(x){if(nrow(x)>0)x[,CDR3.amino.acid.sequence,]}))),all_other_variants_one_mismatch))
     shrep<-data.frame(CDR3.amino.acid.sequence=unique(hugel))
     fname=paste0(prefix,VJDT[i,as.character(bestVGene),],"_",VJDT[i,as.character(bestJGene),],".rda",collapse="")
@@ -220,7 +225,7 @@ parse_rda_folder<-function(DTlist,folder,prefix="",Q=9.41,volume=66e6,silent=T,R
     load(fnames[i])
     if(nrow(res)>0){
     all_short_i<-lapply(DTlist,function(x)x[bestVGene==VJlist[i,1]&bestJGene==VJlist[i,2]&Read.count>Read_thres,,]) 
-    all_short_int<-lapply(all_short_i,filter_data_thres,nei_read_thres=Read_thres2)
+    all_short_int<-lapply(all_short_i,filter_data_thres_df,nei_read_thres=Read_thres2)
     all_short_int2<-lapply(all_short_int,function(x)x[D>2,])
     all_short_int2_space<-lapply(all_short_int2,add_space,hugedf = res,volume=volume)
     for (j in 1:length(all_short_int2_space))
