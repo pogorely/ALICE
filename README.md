@@ -47,7 +47,7 @@ Note, that for demo purposes we run it on 1 core with 10 iterations (0.5 mln seq
 In [paper](https://www.biorxiv.org/content/early/2018/07/23/375162) we used 100 mln simulated sequences for each VJ-class, and this takes a lot of time. 
 Datasets from the paper are available [here](https://github.com/pogorely/ALICE_sample_data).
 
-###Additional parameters
+##Additional parameters
 
 *Read_count_filter*(default 0) and *Read_count_neighbour*(default 1) parameters are two conceptually different count threshold for clones considered by the algorithm. 
 
